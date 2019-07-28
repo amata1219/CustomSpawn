@@ -1,0 +1,9 @@
+name: CustomSpawn
+main: amata1219.custom.spawn.CustomSpawn
+version: 1.0.0]
+depend: [Citizens]
+author: amata1219(Twitter@amata1219)
+commands:
+  customspawn:
+    aliases: [cspawn]
+    permission: custom.spawn.command
