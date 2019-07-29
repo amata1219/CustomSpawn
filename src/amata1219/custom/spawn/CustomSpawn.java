@@ -82,9 +82,9 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 
 			sender.sendMessage(ChatColor.AQUA + ": Success > NPC[" + npcName + "]を現在地点[" + locationToString(location) + "]とバインドしました。");
 			return true;
-		}else if(args[0].equalsIgnoreCase("remove")){
+		}else if(args[0].equalsIgnoreCase("unbind")){
 			if(args.length == 1){
-				sender.sendMessage(ChatColor.RED + ": Syntax error > /customspawn remove [npc_name]");
+				sender.sendMessage(ChatColor.RED + ": Syntax error > /customspawn unbind [npc_name]");
 				return true;
 			}
 
