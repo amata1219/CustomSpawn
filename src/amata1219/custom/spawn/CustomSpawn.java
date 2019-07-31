@@ -208,14 +208,13 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		if(player.getHealth() > event.getDamage())
 			return;
 
-		event.setCancelled(true);
-
-		player.setHealth(player.getMaxHealth());
-
 		event.setDamage(0D);
+		player.setHealth(player.getMaxHealth());
 
 		/*
 		 * combattracker is entityliving's field
+		 * CombatTracker
+		 * EntityLiving
 		 * this = entityplayer
 		 * IChatBaseComponent chatmessage1 = this.getCombatTracker().getDeathMessage();
 			String deathmessage1 = chatmessage1.toPlainText();
@@ -236,7 +235,7 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 				Reflection.invokeMethod(sendMessage, playerList, deathMessage);
 			}
 
-		}.runTaskLater(this, 4);
+		}.runTaskLater(this, 2);
 	}
 
 	@EventHandler
