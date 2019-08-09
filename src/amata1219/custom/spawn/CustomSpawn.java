@@ -32,7 +32,6 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class CustomSpawn extends JavaPlugin implements Listener {
 
-	//CraftServer
 	private final static Field console;
 	private final static Method getPlayerList, sendMessage, getHandle, getCombatTracker, getDeathMessage;
 	private Object server;
@@ -60,7 +59,7 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 
 	private Yaml config, spawn, database;
 	private long waitTime;
-	private TextComponent messageOfSetSpawnPoint;
+	private TextComponent messageOfSetSpawnPoint, messageOfRespawn, messageOfSameSpawnPoint, messageOfCannotMove;
 
 	private final HashMap<String, Location> namesToLocationsMap = new HashMap<>();
 	private final HashMap<UUID, String> points = new HashMap<>();
@@ -72,6 +71,7 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		server = Reflection.getFieldValue(console, getServer());
 
 		config = new Yaml(this, "config.yml");
+
 		spawn = new Yaml(this, "spawn.yml");
 
 		reload();
@@ -82,6 +82,8 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		for(String uuid : database.getKeys(false))
 			points.put(UUID.fromString(uuid), database.getString(uuid));
 
+		getCommand("customspawn").setExecutor(this);
+
 		for(Player player : getServer().getOnlinePlayers())
 			onJoin(new PlayerJoinEvent(player, ""));
 
@@ -91,6 +93,14 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 	@Override
 	public void onDisable(){
 		HandlerList.unregisterAll((JavaPlugin) this);
+
+		for(Entry<String, Location> entry : namesToLocationsMap.entrySet())
+			spawn.set(entry.getKey(), locationToString(entry.getValue()));
+
+		for(Entry<UUID, String> entry : points.entrySet())
+			database.set(entry.getKey().toString(), entry.getValue());
+
+		database.save();
 
 		for(Player player : getServer().getOnlinePlayers())
 			onQuit(new PlayerQuitEvent(player, ""));
@@ -106,7 +116,12 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		Player player = (Player) sender;
 
 		if(args.length == 0){
-			sender.sendMessage(ChatColor.AQUA + "commands");
+			sender.sendMessage("CustomSpawn(Spigot 1.12.2)");
+			sender.sendMessage("§7: §b/customspawn list §7@ §f全スポーン地点を表示します。");
+			sender.sendMessage("§7: §b/customspawn bind [npc_name] §7@ §f現在地と指定したNPCをバインドします。");
+			sender.sendMessage("§7: §b/customspawn unbind [npc_name] §7@ §f指定したNPCとスポーン地点をアンバインドします。");
+			sender.sendMessage("§7: §b/customspawn reload §7@ §fconfig.ymlとspawn.ymlを再読み込みします。");
+			sender.sendMessage("§7developed by amata1219(Twitter@amata1219)");
 			return true;
 		}else if(args[0].equalsIgnoreCase("list")){
 			sender.sendMessage(ChatColor.AQUA + ": Information > 全スポーン地点");
@@ -164,7 +179,10 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 
 		ConfigurationSection messages = config.getConfigurationSection("Messages");
 
-		messageOfSetSpawnPoint = new TextComponent(messages.getString("Set spawn point"));
+		messageOfSetSpawnPoint = new TextComponent(color(messages.getString("Set spawn point")));
+		messageOfRespawn = new TextComponent(color(messages.getString("Respawn")));
+		messageOfSameSpawnPoint = new TextComponent(color(messages.getString("Same spawn point")));
+		messageOfCannotMove = new TextComponent(color(messages.getString("Cannot move")));
 
 		spawn.reload();
 
@@ -175,19 +193,24 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 			namesToLocationsMap.put(name, textToLocation(spawn.getString(name)));
 	}
 
+	private String color(String text){
+		return ChatColor.translateAlternateColorCodes('&', text);
+	}
+
 	@EventHandler
 	public void onClick(NPCRightClickEvent event){
 		String npcName = event.getNPC().getFullName();
 
 		//スポーン地点と結び付けられていなければ戻る
-		if(!namesToLocationsMap.containsKey(npcName))
-			return;
+		if(!namesToLocationsMap.containsKey(npcName)) return;
 
 		Player clicker = event.getClicker();
 		UUID uuid = clicker.getUniqueId();
 
-		if(points.get(uuid).equals(npcName))
+		if(points.containsKey(uuid) && points.get(uuid).equals(npcName)){
+			clicker.spigot().sendMessage(ChatMessageType.ACTION_BAR, messageOfSameSpawnPoint);
 			return;
+		}
 
 		points.put(uuid, npcName);
 
@@ -199,27 +222,16 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 	public void onDead(EntityDamageEvent event){
 		Entity victim = event.getEntity();
 
-		if(!(victim instanceof Player))
-			return;
+		if(!(victim instanceof Player)) return;
 
 		Player player = (Player) victim;
 
 		//致死量のダメージでなければ戻る
-		if(player.getHealth() > event.getDamage())
-			return;
+		if(player.getHealth() > event.getDamage()) return;
 
 		event.setDamage(0D);
 		player.setHealth(player.getMaxHealth());
 
-		/*
-		 * combattracker is entityliving's field
-		 * CombatTracker
-		 * EntityLiving
-		 * this = entityplayer
-		 * IChatBaseComponent chatmessage1 = this.getCombatTracker().getDeathMessage();
-			String deathmessage1 = chatmessage1.toPlainText();
-			this.server.getPlayerList().sendMessage(chatmessage1);
-		 */
 
 		die(player);
 
@@ -244,8 +256,16 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		if(player.getGameMode() != GameMode.SPECTATOR)
 			return;
 
-		if(deads.containsKey(player.getUniqueId()))
+		if(!deads.containsKey(player.getUniqueId())) return;
+
+		Location from = event.getFrom();
+		Location to = event.getTo();
+
+		//移動していればキャンセルする
+		if(from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()){
 			event.setCancelled(true);
+			player.spigot().sendMessage(ChatMessageType.ACTION_BAR, messageOfCannotMove);
+		}
 	}
 
 	@EventHandler
@@ -289,8 +309,7 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 			@Override
 			public void run() {
 				//オフラインであれば戻る
-				if(!player.isOnline())
-					return;
+				if(!player.isOnline()) return;
 
 				player.setGameMode(GameMode.ADVENTURE);
 
@@ -299,6 +318,8 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 					player.teleport(location);
 				else
 					player.teleport(player.getWorld().getSpawnLocation());
+
+				player.spigot().sendMessage(ChatMessageType.ACTION_BAR, messageOfRespawn);
 
 				deads.remove(uuid);
 			}

@@ -1,3 +1,6 @@
 'Wait time': 50
 'Messages':
   'Set spawn point': "&bスポーン地点をここに設定しました。"
+  'Respawn': "&cリスポーンしました。"
+  'Same spawn point': "&c既に同じスポーン地点を設定しています。"
+  'Cannot move': "&c死亡中は動けません。"
