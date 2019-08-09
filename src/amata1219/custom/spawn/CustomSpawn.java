@@ -97,6 +97,8 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		for(Entry<String, Location> entry : namesToLocationsMap.entrySet())
 			spawn.set(entry.getKey(), locationToString(entry.getValue()));
 
+		spawn.save();
+
 		for(Entry<UUID, String> entry : points.entrySet())
 			database.set(entry.getKey().toString(), entry.getValue());
 
@@ -116,17 +118,16 @@ public class CustomSpawn extends JavaPlugin implements Listener {
 		Player player = (Player) sender;
 
 		if(args.length == 0){
-			sender.sendMessage("CustomSpawn(Spigot 1.12.2)");
+			sender.sendMessage("§b§lCustomSpawn(Spigot 1.12.2) §r§7@ §fdeveloped by amata1219(twitter@amata1219)");
 			sender.sendMessage("§7: §b/customspawn list §7@ §f全スポーン地点を表示します。");
-			sender.sendMessage("§7: §b/customspawn bind [npc_name] §7@ §f現在地と指定したNPCをバインドします。");
-			sender.sendMessage("§7: §b/customspawn unbind [npc_name] §7@ §f指定したNPCとスポーン地点をアンバインドします。");
+			sender.sendMessage("§7: §b/customspawn bind [npc_name] §7@ §fNPCと現在地をバインドします。");
+			sender.sendMessage("§7: §b/customspawn unbind [npc_name] §7@ §fNPCとスポーン地点をアンバインドします。");
 			sender.sendMessage("§7: §b/customspawn reload §7@ §fconfig.ymlとspawn.ymlを再読み込みします。");
-			sender.sendMessage("§7developed by amata1219(Twitter@amata1219)");
 			return true;
 		}else if(args[0].equalsIgnoreCase("list")){
 			sender.sendMessage(ChatColor.AQUA + ": Information > 全スポーン地点");
 
-			boolean flag = false;
+			boolean flag = true;
 
 			for(Entry<String, Location> entry : namesToLocationsMap.entrySet())
 				sender.sendMessage(((flag = !flag) ? ChatColor.AQUA : ChatColor.WHITE) + ": " + entry.getKey() + " @ " + locationToString(entry.getValue()));

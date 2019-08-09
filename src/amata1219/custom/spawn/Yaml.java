@@ -24,7 +24,7 @@ public class Yaml extends YamlConfiguration {
 
 		String fileName = file.getName();
 
-		plugin.saveResource(fileName, false);
+		if(!file.exists()) plugin.saveResource(fileName, false);
 
 		reload();
 	}
